@@ -36,6 +36,7 @@ const expenseSchema = new mongoose.Schema(
     },
     splits: [splitSchema],
     amountPerPerson: Number, // For 'eachPaysOwn' split type
+    settled: { type: Boolean, default: false }, // Mark expense as settled/paid
   },
   { timestamps: true }
 );

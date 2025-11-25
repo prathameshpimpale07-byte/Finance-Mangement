@@ -117,6 +117,18 @@ const useTripStore = create((set, get) => ({
     await get().selectTrip(tripId);
   },
 
+  toggleExpenseSettled: async (tripId, expenseId) => {
+    const { data } = await api.patch(`/expenses/${tripId}/${expenseId}/settled`);
+    set((state) => ({
+      expenses: state.expenses.map((expense) =>
+        expense._id === expenseId ? data : expense
+      ),
+    }));
+    // Refresh settlement after toggling
+    await get().loadSettlement(tripId);
+    return data;
+  },
+
   loadSettlement: async (tripId) => {
     const { data } = await api.get(`/settlement/${tripId}`);
     set({ settlement: data });

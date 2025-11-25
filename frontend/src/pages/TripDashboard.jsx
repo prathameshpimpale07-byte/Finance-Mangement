@@ -19,6 +19,7 @@ const TripDashboard = () => {
   const selectTrip = useTripStore((state) => state.selectTrip);
   const loadSettlement = useTripStore((state) => state.loadSettlement);
   const deleteExpense = useTripStore((state) => state.deleteExpense);
+  const toggleExpenseSettled = useTripStore((state) => state.toggleExpenseSettled);
 
   useEffect(() => {
     const loadData = async () => {
@@ -50,6 +51,18 @@ const TripDashboard = () => {
       } catch (error) {
         toast.error(error.message || 'Failed to delete expense. Please try again.');
       }
+    }
+  };
+
+  const handleToggleSettled = async (expenseId) => {
+    try {
+      const expense = expenses.find((e) => e._id === expenseId);
+      await toggleExpenseSettled(tripId, expenseId);
+      toast.success(
+        `Expense marked as ${expense?.settled ? 'unsettled' : 'settled'}!`
+      );
+    } catch (error) {
+      toast.error(error.message || 'Failed to update settled status. Please try again.');
     }
   };
 
@@ -110,7 +123,11 @@ const TripDashboard = () => {
               Add expense
             </Link>
           </div>
-          <ExpenseList expenses={expenses} onDelete={handleDeleteExpense} />
+          <ExpenseList 
+            expenses={expenses} 
+            onDelete={handleDeleteExpense}
+            onToggleSettled={handleToggleSettled}
+          />
         </div>
       </div>
 

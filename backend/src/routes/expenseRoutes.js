@@ -4,6 +4,7 @@ import {
   getExpenses,
   updateExpense,
   deleteExpense,
+  toggleSettled,
 } from '../controllers/expenseController.js';
 
 const router = Router();
@@ -13,6 +14,7 @@ router
   .route('/:tripId/:expenseId')
   .put(updateExpense)
   .delete(deleteExpense);
+router.patch('/:tripId/:expenseId/settled', toggleSettled);
 
 export default router;
 

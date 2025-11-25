@@ -268,10 +268,33 @@ export const deleteExpense = async (req, res, next) => {
   }
 };
 
+export const toggleSettled = async (req, res, next) => {
+  try {
+    const { tripId, expenseId } = req.params;
+    const expense = await Expense.findOne({ _id: expenseId, trip: tripId });
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    expense.settled = !expense.settled;
+    await expense.save();
+
+    await attachActivity(
+      tripId,
+      `Expense "${expense.description}" marked as ${expense.settled ? 'settled' : 'unsettled'}`
+    );
+
+    res.json(expense);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export default {
   createExpense,
   getExpenses,
   updateExpense,
   deleteExpense,
+  toggleSettled,
 };
 

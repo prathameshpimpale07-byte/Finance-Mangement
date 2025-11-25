@@ -19,6 +19,11 @@ export const calculateSettlement = (members = [], expenses = []) => {
       return;
     }
     
+    // Skip settled expenses - they've already been paid
+    if (expense.settled) {
+      return;
+    }
+    
     const payerId = expense.paidBy?.toString();
     if (!ledger[payerId]) return;
     ledger[payerId].paid += expense.amount;
