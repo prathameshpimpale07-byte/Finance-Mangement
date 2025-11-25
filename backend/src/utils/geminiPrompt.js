@@ -14,6 +14,16 @@ Total Members: ${members.length}
 ## MEMBERS
 ${members.map((m, i) => `${i + 1}. ${m.name}`).join('\n')}
 
+## TRIP POOL SUMMARY
+${tripData.poolSummary ? `
+Total Contributions: ₹${tripData.poolSummary.totalContributions}
+Total Spent from Pool: ₹${tripData.poolSummary.totalSpentFromPool}
+Remaining Balance: ₹${tripData.poolSummary.remainingBalance}
+
+Contributions:
+${tripData.poolSummary.contributions.map(c => `  - ${c.member.name}: ₹${c.amount} on ${new Date(c.date).toLocaleDateString()}`).join('\n')}
+` : 'No trip pool contributions.'}
+
 ## EXPENSES BREAKDOWN
 ${expenses.map((exp, i) => {
   const splits = exp.splits || [];
@@ -25,11 +35,15 @@ ${expenses.map((exp, i) => {
     return `  - ${memberName}: ₹${s.amount}`;
   }).join('\n');
   
+  const paymentInfo = exp.paymentSource === 'tripPool'
+    ? 'Paid from: Trip Pool (shared fund)'
+    : `Paid by: ${exp.paidByName || 'Unknown'}`;
+  
   return `Expense ${i + 1}: ${exp.description}
   Amount: ₹${exp.amount}
   Category: ${exp.category}
   Date: ${new Date(exp.date).toLocaleDateString()}
-  Paid by: ${exp.paidByName || 'Unknown'}
+  ${paymentInfo}
   Split Type: ${exp.splitType}
   Split Details:
 ${splitDetails || '  - No splits defined'}`;
@@ -88,22 +102,28 @@ Akshay → Nagesh : ₹95
 
 Generate your explanation with these sections:
 
-### 1. **Expense Breakdown**
-Explain each expense, who paid, and how it was split.
+### 1. **Trip Pool Summary** (if applicable)
+Explain total contributions, how much was spent from pool, remaining balance, and return per member.
 
-### 2. **Each Person's Share**
-Show what each member paid vs what they owe.
+### 2. **Expense Breakdown**
+Explain each expense, who paid (or if from pool), and how it was split.
 
-### 3. **Balances (Give / Take)**
+### 3. **Each Person's Share**
+Show what each member paid vs what they owe (excluding pool payments).
+
+### 4. **Balances (Give / Take)**
 List who should receive money and who owes money.
 
-### 4. **Debt Cancellation** (if applicable)
+### 5. **Debt Cancellation** (if applicable)
 Explain how mutual debts cancel each other out.
 
-### 5. **Final Settlement Steps**
+### 6. **Final Settlement Steps**
 List the optimized payment instructions.
 
-### 6. **Easy-to-read Summary Paragraph**
+### 7. **Pool Returns** (if applicable)
+Explain how remaining pool balance will be returned to members.
+
+### 8. **Easy-to-read Summary Paragraph**
 A friendly 2-3 sentence summary in plain English.
 
 ---

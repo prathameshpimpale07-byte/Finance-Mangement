@@ -1,6 +1,7 @@
 import Trip from '../models/Trip.js';
 import Member from '../models/Member.js';
 import Expense from '../models/Expense.js';
+import AdvanceContribution from '../models/AdvanceContribution.js';
 import calculateSettlement from '../utils/calculateSettlement.js';
 import { generateGeminiPrompt } from '../utils/geminiPrompt.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -29,6 +30,8 @@ export const getAISummary = async (req, res, next) => {
     const expenses = await Expense.find({ trip: tripId })
       .populate('paidBy', 'name')
       .populate('splits.member', 'name');
+    const contributions = await AdvanceContribution.find({ trip: tripId })
+      .populate('member', 'name');
 
     if (members.length === 0) {
       return res.status(400).json({
@@ -53,7 +56,23 @@ export const getAISummary = async (req, res, next) => {
       }, {}),
     };
 
+    // Calculate pool summary
+    const totalContributions = contributions.reduce((sum, c) => sum + c.amount, 0);
+    const poolExpenses = expenses.filter((e) => e.paymentSource === 'tripPool');
+    const totalSpentFromPool = poolExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const remainingBalance = totalContributions - totalSpentFromPool;
+
     const settlement = { ledger, transactions, totals };
+    const poolSummary = {
+      totalContributions,
+      totalSpentFromPool,
+      remainingBalance,
+      contributions: contributions.map((c) => ({
+        member: { name: c.member.name },
+        amount: c.amount,
+        date: c.date,
+      })),
+    };
 
     // Prepare data for Gemini
     const tripData = {
@@ -73,6 +92,7 @@ export const getAISummary = async (req, res, next) => {
         date: exp.date,
         paidBy: exp.paidBy?._id || exp.paidBy,
         paidByName: exp.paidBy?.name || 'Unknown',
+        paymentSource: exp.paymentSource || 'member',
         splitType: exp.splitType,
         splits: (exp.splits || []).map(split => ({
           member: split.member?._id || split.member,
@@ -81,6 +101,7 @@ export const getAISummary = async (req, res, next) => {
           percentage: split.percentage,
         })),
       })),
+      poolSummary,
       settlement: {
         ledger: ledger.map(entry => ({
           member: {

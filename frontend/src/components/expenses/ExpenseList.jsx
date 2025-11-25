@@ -144,7 +144,14 @@ const ExpenseList = ({ expenses = [], onDelete, onToggleSettled, onBulkSettle })
               </p>
             </div>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">
-              {expense.splitType === 'eachPaysOwn' ? (
+              {expense.paymentSource === 'tripPool' ? (
+                <>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    Paid from Trip Pool
+                  </span>
+                  {' · '}Split {expense.splitType}
+                </>
+              ) : expense.splitType === 'eachPaysOwn' ? (
                 <>
                   Each person paid {formatCurrency(expense.amountPerPerson || expense.amount / (expense.splits?.length || 1))} · 
                   <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">

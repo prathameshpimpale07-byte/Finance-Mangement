@@ -7,6 +7,8 @@ const initialState = {
   members: [],
   expenses: [],
   settlement: null,
+  contributions: [],
+  poolSummary: null,
   activity: [],
   loading: false,
   error: null,
@@ -31,16 +33,18 @@ const useTripStore = create((set, get) => ({
     if (!tripId) return;
     set({ loading: true });
     try {
-      const [tripRes, expenseRes, memberRes] = await Promise.all([
+      const [tripRes, expenseRes, memberRes, contributionRes] = await Promise.all([
         api.get(`/trips/${tripId}`),
         api.get(`/expenses/${tripId}`),
         api.get(`/members/${tripId}`),
+        api.get(`/contributions/${tripId}`).catch(() => ({ data: [] })),
       ]);
 
       set({
         currentTrip: tripRes.data,
         expenses: expenseRes.data,
         members: memberRes.data,
+        contributions: contributionRes.data || [],
         activity: tripRes.data.activity || [],
         loading: false,
         error: null,
@@ -133,6 +137,45 @@ const useTripStore = create((set, get) => ({
     const { data } = await api.get(`/settlement/${tripId}`);
     set({ settlement: data });
     return data;
+  },
+
+  addContribution: async (tripId, payload) => {
+    const { data } = await api.post(`/contributions/${tripId}`, payload);
+    set((state) => ({
+      contributions: [data, ...state.contributions],
+    }));
+    await get().loadPoolSummary(tripId);
+    await get().selectTrip(tripId);
+    return data;
+  },
+
+  getContributions: async (tripId) => {
+    const { data } = await api.get(`/contributions/${tripId}`);
+    set({ contributions: data });
+    return data;
+  },
+
+  deleteContribution: async (tripId, contributionId) => {
+    await api.delete(`/contributions/${tripId}/${contributionId}`);
+    set((state) => ({
+      contributions: state.contributions.filter(
+        (c) => c._id !== contributionId
+      ),
+    }));
+    await get().loadPoolSummary(tripId);
+    await get().selectTrip(tripId);
+  },
+
+  loadPoolSummary: async (tripId) => {
+    try {
+      const { data } = await api.get(`/contributions/${tripId}/summary`);
+      set({ poolSummary: data });
+      return data;
+    } catch (error) {
+      // If no contributions exist, set empty summary
+      set({ poolSummary: null });
+      return null;
+    }
   },
 
   deleteTrip: async (tripId) => {

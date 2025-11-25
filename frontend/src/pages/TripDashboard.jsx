@@ -6,6 +6,7 @@ import useTripStore from '../context/tripStore.js';
 import TripStats from '../components/trip/TripStats.jsx';
 import CategoryBreakdown from '../components/trip/CategoryBreakdown.jsx';
 import ExpenseList from '../components/expenses/ExpenseList.jsx';
+import PoolSummary from '../components/pool/PoolSummary.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
 import Fab from '../components/layout/Fab.jsx';
 
@@ -15,9 +16,11 @@ const TripDashboard = () => {
   const members = useTripStore((state) => state.members);
   const expenses = useTripStore((state) => state.expenses);
   const settlement = useTripStore((state) => state.settlement);
+  const poolSummary = useTripStore((state) => state.poolSummary);
   const loading = useTripStore((state) => state.loading);
   const selectTrip = useTripStore((state) => state.selectTrip);
   const loadSettlement = useTripStore((state) => state.loadSettlement);
+  const loadPoolSummary = useTripStore((state) => state.loadPoolSummary);
   const deleteExpense = useTripStore((state) => state.deleteExpense);
   const toggleExpenseSettled = useTripStore((state) => state.toggleExpenseSettled);
 
@@ -28,12 +31,13 @@ const TripDashboard = () => {
     loadData();
   }, [tripId, selectTrip]);
 
-  // Load settlement after trip data is loaded
+  // Load settlement and pool summary after trip data is loaded
   useEffect(() => {
     if (currentTrip && (expenses.length > 0 || members.length > 0)) {
       loadSettlement(tripId);
+      loadPoolSummary(tripId);
     }
-  }, [currentTrip?._id, tripId, loadSettlement]);
+  }, [currentTrip?._id, tripId, loadSettlement, loadPoolSummary]);
 
   const handleDeleteExpense = async (expenseId, expenseDescription) => {
     if (
@@ -134,6 +138,23 @@ const TripDashboard = () => {
           members={members}
           settlement={settlement}
         />
+        
+        {/* Trip Pool Summary */}
+        <div>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+              Trip Pool
+            </h3>
+            <Link
+              to={`/trips/${tripId}/pool`}
+              className="text-sm font-semibold text-brand"
+            >
+              Manage
+            </Link>
+          </div>
+          <PoolSummary poolSummary={poolSummary} />
+        </div>
+
         <CategoryBreakdown expenses={expenses} />
 
         <div>

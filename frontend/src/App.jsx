@@ -8,6 +8,7 @@ import Members from './pages/Members.jsx';
 import AddExpense from './pages/AddExpense.jsx';
 import Settlement from './pages/Settlement.jsx';
 import Timeline from './pages/Timeline.jsx';
+import PoolManagement from './pages/PoolManagement.jsx';
 
 const App = () => (
   <div className="min-h-screen bg-slate-50 pb-16 dark:bg-slate-900">
@@ -45,6 +46,7 @@ const App = () => (
       <Route path="/trips/:tripId/expenses/new" element={<AddExpense />} />
       <Route path="/trips/:tripId/settlement" element={<Settlement />} />
       <Route path="/trips/:tripId/timeline" element={<Timeline />} />
+      <Route path="/trips/:tripId/pool" element={<PoolManagement />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </div>

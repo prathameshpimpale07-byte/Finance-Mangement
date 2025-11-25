@@ -10,7 +10,7 @@ const splitTypes = [
   { value: 'eachPaysOwn', label: 'Each person pays their own' },
 ];
 
-const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
+const ExpenseForm = ({ members = [], initialValues = {}, onSubmit, poolBalance = 0 }) => {
   const defaultDate = format(new Date(), 'yyyy-MM-dd');
   const [form, setForm] = useState({
     description: initialValues.description || '',
@@ -21,6 +21,7 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
       ? format(new Date(initialValues.date), 'yyyy-MM-dd')
       : defaultDate,
     paidBy: initialValues.paidBy?._id || members[0]?._id || '',
+    paymentSource: initialValues.paymentSource || 'member',
     splitType: initialValues.splitType || 'equal',
     selectedMembers:
       initialValues.splits?.map((split) => split.member?._id || split.member) ||
@@ -98,8 +99,11 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
         return;
       }
     }
-    if (!form.paidBy) {
+    if (form.paymentSource === 'member' && !form.paidBy) {
       return;
+    }
+    if (form.paymentSource === 'tripPool' && form.splitType === 'eachPaysOwn') {
+      return; // Can't use pool for eachPaysOwn
     }
 
     const payload = {
@@ -109,7 +113,8 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
         : Number(form.amount),
       category: form.category,
       date: form.date,
-      paidBy: form.paidBy,
+      paidBy: form.paymentSource === 'tripPool' ? null : form.paidBy,
+      paymentSource: form.paymentSource,
       splitType: form.splitType,
       amountPerPerson: form.splitType === 'eachPaysOwn' ? Number(form.amountPerPerson) : undefined,
       selectedMembers: form.splitType === 'selected' ? form.selectedMembers : [],
@@ -193,6 +198,25 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
         </div>
         <div>
           <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
+            Payment source
+          </label>
+          <select
+            className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-brand focus:outline-none dark:border-slate-700 dark:bg-slate-900"
+            value={form.paymentSource}
+            onChange={(e) => {
+              setForm((prev) => ({ ...prev, paymentSource: e.target.value }));
+            }}
+          >
+            <option value="member">Paid by member</option>
+            {poolBalance > 0 && (
+              <option value="tripPool">From trip pool (₹{poolBalance.toFixed(2)} available)</option>
+            )}
+          </select>
+        </div>
+      </div>
+      {form.paymentSource === 'member' && (
+        <div>
+          <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
             Paid by
           </label>
           <select
@@ -207,7 +231,12 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
             ))}
           </select>
         </div>
-      </div>
+      )}
+      {form.paymentSource === 'tripPool' && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/10 dark:text-emerald-400">
+          This expense will be paid from the shared trip pool. It won't affect individual member balances.
+        </div>
+      )}
       <div>
         <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
           Split method

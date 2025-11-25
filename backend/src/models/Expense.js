@@ -27,7 +27,9 @@ const expenseSchema = new mongoose.Schema(
     paidBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Member',
-      required: true,
+      required: function() {
+        return this.paymentSource !== 'tripPool';
+      },
     },
     splitType: {
       type: String,
@@ -37,6 +39,11 @@ const expenseSchema = new mongoose.Schema(
     splits: [splitSchema],
     amountPerPerson: Number, // For 'eachPaysOwn' split type
     settled: { type: Boolean, default: false }, // Mark expense as settled/paid
+    paymentSource: {
+      type: String,
+      enum: ['member', 'tripPool'],
+      default: 'member',
+    }, // Whether paid by member or from trip pool
   },
   { timestamps: true }
 );

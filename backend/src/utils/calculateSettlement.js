@@ -24,6 +24,11 @@ export const calculateSettlement = (members = [], expenses = []) => {
       return;
     }
     
+    // Skip expenses paid from trip pool - they don't affect member balances
+    if (expense.paymentSource === 'tripPool') {
+      return;
+    }
+    
     const payerId = expense.paidBy?.toString();
     if (!ledger[payerId]) return;
     ledger[payerId].paid += expense.amount;

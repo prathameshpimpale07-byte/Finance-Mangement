@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Trip from '../models/Trip.js';
 import Expense from '../models/Expense.js';
 import Member from '../models/Member.js';
+import AdvanceContribution from '../models/AdvanceContribution.js';
 
 const round = (value) =>
   Math.round((Number(value) + Number.EPSILON) * 100) / 100;
@@ -87,13 +88,26 @@ export const createExpense = async (req, res, next) => {
       percentages,
       customSplits,
       amountPerPerson,
+      paymentSource = 'member',
     } = req.body;
 
-    if (!description || !amount || !paidBy) {
+    // Validate payment source
+    if (paymentSource === 'tripPool' && paidBy) {
+      return res.status(400).json({
+        message: 'Cannot specify paidBy when paymentSource is tripPool',
+      });
+    }
+    if (paymentSource === 'member' && !paidBy) {
+      return res.status(400).json({
+        message: 'paidBy is required when paymentSource is member',
+      });
+    }
+
+    if (!description || !amount) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    if (!trip.members.some((m) => m._id.equals(paidBy))) {
+    if (paymentSource === 'member' && !trip.members.some((m) => m._id.equals(paidBy))) {
       return res.status(400).json({ message: 'Paid by member invalid' });
     }
 
@@ -120,15 +134,33 @@ export const createExpense = async (req, res, next) => {
       amountPerPerson: finalAmountPerPerson,
     });
 
+    // Validate payment source
+    if (paymentSource === 'tripPool') {
+      // Check if pool has enough balance
+      const contributions = await AdvanceContribution.find({ trip: tripId });
+      const poolExpenses = await Expense.find({ trip: tripId, paymentSource: 'tripPool' });
+      
+      const totalContributions = contributions.reduce((sum, c) => sum + c.amount, 0);
+      const totalSpent = poolExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const availableBalance = totalContributions - totalSpent;
+      
+      if (finalAmount > availableBalance) {
+        return res.status(400).json({
+          message: `Insufficient pool balance. Available: ₹${availableBalance.toFixed(2)}, Required: ₹${finalAmount.toFixed(2)}`,
+        });
+      }
+    }
+
     const expense = await Expense.create({
       trip: tripId,
       description,
       amount: finalAmount,
       category,
       date,
-      paidBy,
+      paidBy: paymentSource === 'tripPool' ? null : paidBy,
       splitType,
       amountPerPerson: splitType === 'eachPaysOwn' ? finalAmountPerPerson : undefined,
+      paymentSource,
       splits: splitPayload.map((split) => ({
         member: new mongoose.Types.ObjectId(split.member),
         amount: split.amount,
@@ -139,10 +171,11 @@ export const createExpense = async (req, res, next) => {
     trip.expenses.push(expense._id);
     await trip.save();
 
-    const payer = await ensureMember(tripId, paidBy);
-    const activityMessage = splitType === 'eachPaysOwn'
-      ? `${payer.name} added ₹${finalAmount} for ${description} (each person paid ₹${finalAmountPerPerson})`
-      : `${payer.name} added ₹${finalAmount} for ${description}`;
+    const activityMessage = paymentSource === 'tripPool'
+      ? `₹${finalAmount} spent from trip pool for ${description}`
+      : splitType === 'eachPaysOwn'
+      ? `${(await ensureMember(tripId, paidBy)).name} added ₹${finalAmount} for ${description} (each person paid ₹${finalAmountPerPerson})`
+      : `${(await ensureMember(tripId, paidBy)).name} added ₹${finalAmount} for ${description}`;
     await attachActivity(tripId, activityMessage);
 
     res.status(201).json(expense);
@@ -225,11 +258,41 @@ export const updateExpense = async (req, res, next) => {
       }
     }
 
+    // Validate payment source change
+    if (req.body.paymentSource !== undefined) {
+      const newPaymentSource = req.body.paymentSource;
+      if (newPaymentSource === 'tripPool') {
+        // Check if pool has enough balance (excluding current expense if it was also from pool)
+        const contributions = await AdvanceContribution.find({ trip: tripId });
+        const poolExpenses = await Expense.find({ 
+          trip: tripId, 
+          paymentSource: 'tripPool',
+          _id: { $ne: expenseId }
+        });
+        
+        const totalContributions = contributions.reduce((sum, c) => sum + c.amount, 0);
+        const totalSpent = poolExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const availableBalance = totalContributions - totalSpent;
+        
+        if (finalAmount > availableBalance) {
+          return res.status(400).json({
+            message: `Insufficient pool balance. Available: ₹${availableBalance.toFixed(2)}, Required: ₹${finalAmount.toFixed(2)}`,
+          });
+        }
+        expense.paidBy = null;
+      } else if (newPaymentSource === 'member' && !paidBy) {
+        return res.status(400).json({
+          message: 'paidBy is required when paymentSource is member',
+        });
+      }
+      expense.paymentSource = newPaymentSource;
+    }
+
     if (description) expense.description = description;
     if (amount) expense.amount = amount;
     if (category) expense.category = category;
     if (date) expense.date = date;
-    if (paidBy) expense.paidBy = paidBy;
+    if (paidBy !== undefined && expense.paymentSource !== 'tripPool') expense.paidBy = paidBy;
     if (splitType) expense.splitType = splitType;
 
     await expense.save();

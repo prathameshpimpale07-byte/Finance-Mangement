@@ -10,12 +10,15 @@ const AddExpense = () => {
   const { tripId } = useParams();
   const navigate = useNavigate();
   const members = useTripStore((state) => state.members);
+  const poolSummary = useTripStore((state) => state.poolSummary);
   const addExpense = useTripStore((state) => state.addExpense);
   const selectTrip = useTripStore((state) => state.selectTrip);
+  const loadPoolSummary = useTripStore((state) => state.loadPoolSummary);
 
   useEffect(() => {
     selectTrip(tripId);
-  }, [tripId, selectTrip]);
+    loadPoolSummary(tripId);
+  }, [tripId, selectTrip, loadPoolSummary]);
 
   const handleSubmit = async (payload) => {
     try {
@@ -37,7 +40,11 @@ const AddExpense = () => {
           <ArrowLeft className="h-4 w-4" />
           Back to trip
         </Link>
-        <ExpenseForm members={members} onSubmit={handleSubmit} />
+        <ExpenseForm 
+          members={members} 
+          onSubmit={handleSubmit}
+          poolBalance={poolSummary?.remainingBalance || 0}
+        />
       </div>
       <BottomNav basePath={`trips/${tripId}`} />
     </section>

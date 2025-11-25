@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, Download, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useTripStore from '../context/tripStore.js';
 import SettlementList from '../components/summary/SettlementList.jsx';
+import PoolSummary from '../components/pool/PoolSummary.jsx';
 import AISummary from '../components/summary/AISummary.jsx';
 import PdfExportButton from '../components/summary/PdfExportButton.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
@@ -15,7 +16,9 @@ const Settlement = () => {
   const settlement = useTripStore((state) => state.settlement);
   const expenses = useTripStore((state) => state.expenses);
   const members = useTripStore((state) => state.members);
+  const poolSummary = useTripStore((state) => state.poolSummary);
   const loadSettlement = useTripStore((state) => state.loadSettlement);
+  const loadPoolSummary = useTripStore((state) => state.loadPoolSummary);
   const selectTrip = useTripStore((state) => state.selectTrip);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,10 +28,11 @@ const Settlement = () => {
       setLoading(true);
       await selectTrip(tripId);
       await loadSettlement(tripId);
+      await loadPoolSummary(tripId);
       setLoading(false);
     };
     loadData();
-  }, [tripId, selectTrip, loadSettlement]);
+  }, [tripId, selectTrip, loadSettlement, loadPoolSummary]);
 
   // Auto-refresh settlement when expenses or members change
   useEffect(() => {
@@ -98,6 +102,16 @@ const Settlement = () => {
 
         {/* Settlement Data */}
         <SettlementList settlement={settlement} members={members} expenses={expenses} />
+
+        {/* Pool Summary */}
+        {poolSummary && (
+          <div>
+            <h3 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">
+              Trip Pool Summary
+            </h3>
+            <PoolSummary poolSummary={poolSummary} />
+          </div>
+        )}
 
         {/* AI Summary Section */}
         <AISummary tripId={tripId} />
