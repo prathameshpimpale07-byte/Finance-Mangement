@@ -121,6 +121,14 @@ const useTripStore = create((set, get) => ({
     return data;
   },
 
+  deleteTrip: async (tripId) => {
+    await api.delete(`/trips/${tripId}`);
+    set((state) => ({
+      trips: state.trips.filter((trip) => trip._id !== tripId),
+      currentTrip: state.currentTrip?._id === tripId ? null : state.currentTrip,
+    }));
+  },
+
   reset: () => set(initialState),
 }));
 
