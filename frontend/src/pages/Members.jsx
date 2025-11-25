@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useTripStore from '../context/tripStore.js';
 import MemberList from '../components/members/MemberList.jsx';
 import BottomNav from '../components/layout/BottomNav.jsx';
@@ -18,9 +19,26 @@ const Members = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!form.name) return;
-    await addMember(tripId, form);
-    setForm({ name: '', contact: '' });
+    if (!form.name.trim()) {
+      toast.error('Please enter a member name');
+      return;
+    }
+    try {
+      await addMember(tripId, form);
+      toast.success(`${form.name} added successfully!`);
+      setForm({ name: '', contact: '' });
+    } catch (error) {
+      toast.error(error.message || 'Failed to add member. Please try again.');
+    }
+  };
+
+  const handleRemove = async (memberId) => {
+    try {
+      await removeMember(tripId, memberId);
+      toast.success('Member removed successfully!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to remove member. Please try again.');
+    }
   };
 
   return (
@@ -57,7 +75,7 @@ const Members = () => {
           </button>
         </form>
 
-        <MemberList members={members} onRemove={(memberId) => removeMember(tripId, memberId)} />
+        <MemberList members={members} onRemove={handleRemove} />
       </div>
 
       <BottomNav basePath={`trips/${tripId}`} />

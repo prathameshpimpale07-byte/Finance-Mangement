@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import ExpenseForm from '../components/expenses/ExpenseForm.jsx';
+import BottomNav from '../components/layout/BottomNav.jsx';
 import useTripStore from '../context/tripStore.js';
 
 const AddExpense = () => {
@@ -15,13 +18,28 @@ const AddExpense = () => {
   }, [tripId, selectTrip]);
 
   const handleSubmit = async (payload) => {
-    await addExpense(tripId, payload);
-    navigate(`/trips/${tripId}`);
+    try {
+      await addExpense(tripId, payload);
+      toast.success('Expense added successfully!');
+      navigate(`/trips/${tripId}`);
+    } catch (error) {
+      toast.error(error.message || 'Failed to add expense. Please try again.');
+    }
   };
 
   return (
-    <section className="mx-auto max-w-3xl px-4 pb-24 pt-4">
-      <ExpenseForm members={members} onSubmit={handleSubmit} />
+    <section className="relative pb-32">
+      <div className="mx-auto max-w-3xl px-4 pt-4">
+        <Link
+          to={`/trips/${tripId}`}
+          className="mb-4 inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to trip
+        </Link>
+        <ExpenseForm members={members} onSubmit={handleSubmit} />
+      </div>
+      <BottomNav basePath={`trips/${tripId}`} />
     </section>
   );
 };

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Sun, Moon, MapPin } from 'lucide-react';
 import useDarkMode from '../../hooks/useDarkMode.js';
 
@@ -6,7 +7,7 @@ const TopBar = ({ title }) => {
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between bg-slate-50/80 px-4 py-3 backdrop-blur dark:bg-slate-900/80">
-      <div className="flex items-center gap-2">
+      <Link to="/" className="flex items-center gap-2 transition hover:opacity-80">
         <MapPin className="text-brand h-5 w-5" />
         <div>
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -16,7 +17,7 @@ const TopBar = ({ title }) => {
             {title || 'Smart trip expenses'}
           </h1>
         </div>
-      </div>
+      </Link>
       <button
         type="button"
         onClick={() => setIsDark((prev) => !prev)}

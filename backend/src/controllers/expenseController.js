@@ -13,7 +13,23 @@ const buildSplits = ({
   percentages = [],
   customSplits = [],
   memberIds = [],
+  amountPerPerson,
 }) => {
+  // Handle 'eachPaysOwn' split type
+  if (splitType === 'eachPaysOwn') {
+    if (!amountPerPerson) {
+      throw new Error('amountPerPerson is required for eachPaysOwn split type');
+    }
+    const allMembers = memberIds.map(String);
+    if (!allMembers.length) throw new Error('No members to split with');
+    
+    // Each member pays their own amount
+    return allMembers.map((memberId) => ({
+      member: memberId,
+      amount: round(amountPerPerson),
+    }));
+  }
+
   const targetMembers =
     selectedMembers.length > 0 ? selectedMembers : memberIds.map(String);
   if (!targetMembers.length) throw new Error('No members to split with');
@@ -70,6 +86,7 @@ export const createExpense = async (req, res, next) => {
       selectedMembers,
       percentages,
       customSplits,
+      amountPerPerson,
     } = req.body;
 
     if (!description || !amount || !paidBy) {
@@ -80,23 +97,38 @@ export const createExpense = async (req, res, next) => {
       return res.status(400).json({ message: 'Paid by member invalid' });
     }
 
+    // For 'eachPaysOwn', calculate total amount from amountPerPerson
+    let finalAmount = amount;
+    let finalAmountPerPerson = amountPerPerson;
+    
+    if (splitType === 'eachPaysOwn') {
+      if (!amountPerPerson) {
+        return res.status(400).json({ message: 'amountPerPerson is required for eachPaysOwn split type' });
+      }
+      // Total amount = amountPerPerson * number of members
+      finalAmount = round(amountPerPerson * trip.members.length);
+      finalAmountPerPerson = amountPerPerson;
+    }
+
     const splitPayload = buildSplits({
-      amount,
+      amount: finalAmount,
       splitType,
       selectedMembers,
       percentages,
       customSplits,
       memberIds: trip.members.map((m) => m._id),
+      amountPerPerson: finalAmountPerPerson,
     });
 
     const expense = await Expense.create({
       trip: tripId,
       description,
-      amount,
+      amount: finalAmount,
       category,
       date,
       paidBy,
       splitType,
+      amountPerPerson: splitType === 'eachPaysOwn' ? finalAmountPerPerson : undefined,
       splits: splitPayload.map((split) => ({
         member: new mongoose.Types.ObjectId(split.member),
         amount: split.amount,
@@ -108,10 +140,10 @@ export const createExpense = async (req, res, next) => {
     await trip.save();
 
     const payer = await ensureMember(tripId, paidBy);
-    await attachActivity(
-      tripId,
-      `${payer.name} added ₹${amount} for ${description}`
-    );
+    const activityMessage = splitType === 'eachPaysOwn'
+      ? `${payer.name} added ₹${finalAmount} for ${description} (each person paid ₹${finalAmountPerPerson})`
+      : `${payer.name} added ₹${finalAmount} for ${description}`;
+    await attachActivity(tripId, activityMessage);
 
     res.status(201).json(expense);
   } catch (error) {
@@ -150,26 +182,47 @@ export const updateExpense = async (req, res, next) => {
       selectedMembers,
       percentages,
       customSplits,
+      amountPerPerson,
     } = req.body;
 
     if (paidBy && !trip.members.some((m) => m._id.equals(paidBy))) {
       return res.status(400).json({ message: 'Paid by member invalid' });
     }
 
-    if (splitType || selectedMembers || percentages || customSplits || amount) {
+    if (splitType || selectedMembers || percentages || customSplits || amount || amountPerPerson) {
+      const currentSplitType = splitType ?? expense.splitType;
+      let finalAmount = amount ?? expense.amount;
+      let finalAmountPerPerson = amountPerPerson ?? expense.amountPerPerson;
+      
+      if (currentSplitType === 'eachPaysOwn') {
+        if (amountPerPerson !== undefined) {
+          finalAmountPerPerson = amountPerPerson;
+          finalAmount = round(amountPerPerson * trip.members.length);
+        } else if (expense.amountPerPerson) {
+          finalAmountPerPerson = expense.amountPerPerson;
+          finalAmount = round(expense.amountPerPerson * trip.members.length);
+        }
+      }
+
       const splitPayload = buildSplits({
-        amount: amount ?? expense.amount,
-        splitType: splitType ?? expense.splitType,
+        amount: finalAmount,
+        splitType: currentSplitType,
         selectedMembers,
         percentages,
         customSplits,
         memberIds: trip.members.map((m) => m._id),
+        amountPerPerson: finalAmountPerPerson,
       });
       expense.splits = splitPayload.map((split) => ({
         member: new mongoose.Types.ObjectId(split.member),
         amount: split.amount,
         percentage: split.percentage,
       }));
+      
+      if (currentSplitType === 'eachPaysOwn') {
+        expense.amount = finalAmount;
+        expense.amountPerPerson = finalAmountPerPerson;
+      }
     }
 
     if (description) expense.description = description;

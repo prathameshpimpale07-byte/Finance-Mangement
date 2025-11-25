@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { formatCurrency } from '../../utils/format.js';
 import useTripStore from '../../context/tripStore.js';
 
@@ -19,20 +20,21 @@ const TripCard = ({ trip }) => {
       try {
         await deleteTrip(trip._id);
         await fetchTrips();
+        toast.success('Trip deleted successfully!');
       } catch (error) {
-        alert('Failed to delete trip: ' + error.message);
+        toast.error(error.message || 'Failed to delete trip. Please try again.');
       }
     }
   };
 
   return (
     <div className="group relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-700 dark:bg-slate-800">
-      <Link to={`/trips/${trip._id}`} className="block">
+      <Link to={`/trips/${trip._id}`} className="block pr-10">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h3 className="flex-1 text-lg font-semibold text-slate-900 dark:text-white">
             {trip.name}
           </h3>
-          <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand">
+          <span className="ml-2 rounded-full bg-brand/10 px-2 py-1 text-xs font-semibold text-brand sm:px-3">
             {trip.members?.length || 0} people
           </span>
         </div>
@@ -48,10 +50,10 @@ const TripCard = ({ trip }) => {
       </Link>
       <button
         onClick={handleDelete}
-        className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 opacity-0 transition hover:bg-red-50 group-hover:opacity-100 dark:hover:bg-red-900/20"
+        className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white text-red-500 opacity-0 shadow-sm transition hover:bg-red-50 group-hover:opacity-100 dark:bg-slate-800 dark:hover:bg-red-900/20"
         aria-label="Delete trip"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );

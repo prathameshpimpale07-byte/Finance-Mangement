@@ -13,6 +13,12 @@ export const calculateSettlement = (members = [], expenses = []) => {
   });
 
   expenses.forEach((expense) => {
+    // Skip 'eachPaysOwn' expenses from settlement calculation
+    // Each person already paid their own share, so no settlement needed
+    if (expense.splitType === 'eachPaysOwn') {
+      return;
+    }
+    
     const payerId = expense.paidBy?.toString();
     if (!ledger[payerId]) return;
     ledger[payerId].paid += expense.amount;

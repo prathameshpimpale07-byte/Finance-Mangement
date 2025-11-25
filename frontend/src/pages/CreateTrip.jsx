@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useTripStore from '../context/tripStore.js';
 
 const CreateTrip = () => {
@@ -26,15 +27,24 @@ const CreateTrip = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!name.trim()) {
+      toast.error('Please enter a trip name');
+      return;
+    }
     setLoading(true);
-    const filteredMembers = members.filter((member) => member.name.trim());
-    const trip = await createTrip({
-      name,
-      startDate,
-      members: filteredMembers,
-    });
-    setLoading(false);
-    navigate(`/trips/${trip._id}`);
+    try {
+      const filteredMembers = members.filter((member) => member.name.trim());
+      const trip = await createTrip({
+        name,
+        startDate,
+        members: filteredMembers,
+      });
+      toast.success('Trip created successfully!');
+      navigate(`/trips/${trip._id}`);
+    } catch (error) {
+      toast.error(error.message || 'Failed to create trip. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (

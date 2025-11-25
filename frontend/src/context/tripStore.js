@@ -113,6 +113,8 @@ const useTripStore = create((set, get) => ({
     set((state) => ({
       expenses: state.expenses.filter((expense) => expense._id !== expenseId),
     }));
+    // Refresh trip data to keep everything in sync
+    await get().selectTrip(tripId);
   },
 
   loadSettlement: async (tripId) => {

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import TopBar from './components/layout/TopBar.jsx';
 import Home from './pages/Home.jsx';
 import CreateTrip from './pages/CreateTrip.jsx';
@@ -10,6 +11,31 @@ import Timeline from './pages/Timeline.jsx';
 
 const App = () => (
   <div className="min-h-screen bg-slate-50 pb-16 dark:bg-slate-900">
+    <Toaster
+      position="top-center"
+      toastOptions={{
+        duration: 3000,
+        style: {
+          background: '#fff',
+          color: '#1e293b',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        },
+        success: {
+          iconTheme: {
+            primary: '#22c55e',
+            secondary: '#fff',
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: '#ef4444',
+            secondary: '#fff',
+          },
+        },
+      }}
+    />
     <TopBar title="TripSplit – Trip Expense Manager" />
     <Routes>
       <Route path="/" element={<Home />} />

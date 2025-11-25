@@ -7,6 +7,7 @@ const splitTypes = [
   { value: 'selected', label: 'Split among selected' },
   { value: 'percentage', label: 'Split by percentage' },
   { value: 'custom', label: 'Manual split' },
+  { value: 'eachPaysOwn', label: 'Each person pays their own' },
 ];
 
 const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
@@ -14,6 +15,7 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
   const [form, setForm] = useState({
     description: initialValues.description || '',
     amount: initialValues.amount || '',
+    amountPerPerson: initialValues.amountPerPerson || '',
     category: initialValues.category || 'Travel',
     date: initialValues.date
       ? format(new Date(initialValues.date), 'yyyy-MM-dd')
@@ -84,15 +86,32 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
 
   const submitHandler = (event) => {
     event.preventDefault();
-    if (!form.description || !form.amount || !form.paidBy) return;
+    if (!form.description?.trim()) {
+      return;
+    }
+    if (form.splitType === 'eachPaysOwn') {
+      if (!form.amountPerPerson || Number(form.amountPerPerson) <= 0) {
+        return;
+      }
+    } else {
+      if (!form.amount || Number(form.amount) <= 0) {
+        return;
+      }
+    }
+    if (!form.paidBy) {
+      return;
+    }
 
     const payload = {
       description: form.description,
-      amount: Number(form.amount),
+      amount: form.splitType === 'eachPaysOwn' 
+        ? Number(form.amountPerPerson) * members.length 
+        : Number(form.amount),
       category: form.category,
       date: form.date,
       paidBy: form.paidBy,
       splitType: form.splitType,
+      amountPerPerson: form.splitType === 'eachPaysOwn' ? Number(form.amountPerPerson) : undefined,
       selectedMembers: form.splitType === 'selected' ? form.selectedMembers : [],
       percentages:
         form.splitType === 'percentage' ? form.percentages : undefined,
@@ -122,14 +141,26 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
-            Amount (₹)
+            {form.splitType === 'eachPaysOwn' ? 'Amount per person (₹)' : 'Amount (₹)'}
           </label>
           <input
             type="number"
             className="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm focus:border-brand focus:outline-none dark:border-slate-700 dark:bg-slate-900"
-            value={form.amount}
-            onChange={handleChange('amount')}
+            value={form.splitType === 'eachPaysOwn' ? form.amountPerPerson : form.amount}
+            onChange={(e) => {
+              if (form.splitType === 'eachPaysOwn') {
+                setForm((prev) => ({ ...prev, amountPerPerson: e.target.value }));
+              } else {
+                setForm((prev) => ({ ...prev, amount: e.target.value }));
+              }
+            }}
+            placeholder={form.splitType === 'eachPaysOwn' ? 'E.g. 120' : ''}
           />
+          {form.splitType === 'eachPaysOwn' && form.amountPerPerson && members.length > 0 && (
+            <p className="mt-1 text-xs text-slate-500">
+              Total: ₹{Number(form.amountPerPerson) * members.length} ({members.length} members)
+            </p>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
@@ -181,7 +212,7 @@ const ExpenseForm = ({ members = [], initialValues = {}, onSubmit }) => {
         <label className="text-sm font-medium text-slate-600 dark:text-slate-200">
           Split method
         </label>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {splitTypes.map((option) => (
             <button
               key={option.value}

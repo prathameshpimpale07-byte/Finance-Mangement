@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import useTripStore from '../context/tripStore.js';
 import TripStats from '../components/trip/TripStats.jsx';
 import CategoryBreakdown from '../components/trip/CategoryBreakdown.jsx';
@@ -10,26 +11,44 @@ import Fab from '../components/layout/Fab.jsx';
 
 const TripDashboard = () => {
   const { tripId } = useParams();
-  const navigate = useNavigate();
   const currentTrip = useTripStore((state) => state.currentTrip);
   const members = useTripStore((state) => state.members);
   const expenses = useTripStore((state) => state.expenses);
   const settlement = useTripStore((state) => state.settlement);
   const loading = useTripStore((state) => state.loading);
   const selectTrip = useTripStore((state) => state.selectTrip);
-  const deleteTrip = useTripStore((state) => state.deleteTrip);
+  const loadSettlement = useTripStore((state) => state.loadSettlement);
+  const deleteExpense = useTripStore((state) => state.deleteExpense);
 
   useEffect(() => {
-    selectTrip(tripId);
+    const loadData = async () => {
+      await selectTrip(tripId);
+    };
+    loadData();
   }, [tripId, selectTrip]);
 
-  const handleDeleteTrip = async () => {
-    if (window.confirm(`Are you sure you want to delete "${currentTrip.name}"? This will delete all expenses and members. This action cannot be undone.`)) {
+  // Load settlement after trip data is loaded
+  useEffect(() => {
+    if (currentTrip && (expenses.length > 0 || members.length > 0)) {
+      loadSettlement(tripId);
+    }
+  }, [currentTrip?._id, tripId, loadSettlement]);
+
+  const handleDeleteExpense = async (expenseId, expenseDescription) => {
+    if (
+      window.confirm(
+        `Delete expense "${expenseDescription}"? This action cannot be undone.`
+      )
+    ) {
       try {
-        await deleteTrip(tripId);
-        navigate('/');
+        await deleteExpense(tripId, expenseId);
+        // Refresh settlement after deletion
+        if (expenses.length > 0 || members.length > 0) {
+          await loadSettlement(tripId);
+        }
+        toast.success('Expense deleted successfully!');
       } catch (error) {
-        alert('Failed to delete trip: ' + error.message);
+        toast.error(error.message || 'Failed to delete expense. Please try again.');
       }
     }
   };
@@ -62,18 +81,9 @@ const TripDashboard = () => {
             <p className="text-xs uppercase tracking-wide text-slate-400">
               Current trip
             </p>
-            <div className="mt-1 flex items-center justify-between">
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">
-                {currentTrip.name}
-              </h2>
-              <button
-                onClick={handleDeleteTrip}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition hover:bg-red-50 dark:hover:bg-red-900/20"
-                aria-label="Delete trip"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+            <h2 className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
+              {currentTrip.name}
+            </h2>
             <p className="mt-1 text-sm text-slate-500">
               {members.length} members • Started{' '}
               {new Date(currentTrip.startDate).toLocaleDateString()}
@@ -100,7 +110,7 @@ const TripDashboard = () => {
               Add expense
             </Link>
           </div>
-          <ExpenseList expenses={expenses} />
+          <ExpenseList expenses={expenses} onDelete={handleDeleteExpense} />
         </div>
       </div>
 

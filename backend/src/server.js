@@ -7,6 +7,7 @@ import tripRoutes from './routes/tripRoutes.js';
 import memberRoutes from './routes/memberRoutes.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import settlementRoutes from './routes/settlementRoutes.js';
+import aiSummaryRoutes from './routes/aiSummaryRoutes.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/settlement', settlementRoutes);
+app.use('/api/summary/ai', aiSummaryRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

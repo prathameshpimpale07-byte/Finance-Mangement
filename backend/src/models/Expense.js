@@ -31,10 +31,11 @@ const expenseSchema = new mongoose.Schema(
     },
     splitType: {
       type: String,
-      enum: ['equal', 'selected', 'percentage', 'custom'],
+      enum: ['equal', 'selected', 'percentage', 'custom', 'eachPaysOwn'],
       default: 'equal',
     },
     splits: [splitSchema],
+    amountPerPerson: Number, // For 'eachPaysOwn' split type
   },
   { timestamps: true }
 );
