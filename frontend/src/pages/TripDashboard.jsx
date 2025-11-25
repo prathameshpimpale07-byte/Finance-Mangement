@@ -66,6 +66,31 @@ const TripDashboard = () => {
     }
   };
 
+  const handleBulkSettle = async (expenseIds, settle) => {
+    try {
+      // Only toggle expenses that need to change status
+      const expensesToUpdate = expenses.filter(
+        (e) => expenseIds.includes(e._id) && e.settled !== settle
+      );
+      
+      if (expensesToUpdate.length === 0) {
+        toast.info('Selected expenses already have the desired status.');
+        return;
+      }
+
+      // Toggle each expense that needs updating
+      await Promise.all(
+        expensesToUpdate.map((expense) => toggleExpenseSettled(tripId, expense._id))
+      );
+      
+      toast.success(
+        `${expensesToUpdate.length} expense${expensesToUpdate.length > 1 ? 's' : ''} marked as ${settle ? 'settled' : 'unsettled'}!`
+      );
+    } catch (error) {
+      toast.error(error.message || 'Failed to update expenses. Please try again.');
+    }
+  };
+
   if (loading && !currentTrip) {
     return <p className="p-6 text-sm text-slate-500">Loading trip...</p>;
   }
@@ -127,6 +152,7 @@ const TripDashboard = () => {
             expenses={expenses} 
             onDelete={handleDeleteExpense}
             onToggleSettled={handleToggleSettled}
+            onBulkSettle={handleBulkSettle}
           />
         </div>
       </div>
