@@ -127,7 +127,7 @@ export const getAISummary = async (req, res, next) => {
     // Try gemini-2.5-pro first, fallback to gemini-1.5-pro if it fails
     let model;
     try {
-      model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+      model = genAI.getGenerativeModel({ model:'gemini-2.5-flash-lite' });
     } catch (modelError) {
       console.warn('gemini-2.5-pro not available, falling back to gemini-1.5-pro');
       model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
