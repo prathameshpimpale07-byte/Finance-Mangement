@@ -130,7 +130,7 @@ export const getAISummary = async (req, res, next) => {
       model = genAI.getGenerativeModel({ model:'gemini-2.5-flash-lite' });
     } catch (modelError) {
       console.warn('gemini-2.5-pro not available, falling back to gemini-1.5-pro');
-      model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+      model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
     }
 
     // Call Gemini API with timeout handling
